@@ -73,7 +73,6 @@ def build_queue(data):
     queue = Queue()
 
     for i in data['Entries']:
-
         date = format_time(i['Updated']).partition(' ')
         title = i['Title']
         summary = i['Summary'].replace("\n", "")
@@ -88,8 +87,7 @@ def map_data_thread(queue, mapped):
     while not queue.empty():
         q = queue.get()
 
-        xml = q[3]
-        data = request(xml)
+        data = request(q[3])
         link = parse_xml(data)
 
         mapped.append((q[0], q[1], q[2], link))
@@ -99,9 +97,11 @@ def map_data_thread(queue, mapped):
 
 def format_time(time):
     format = '%Y-%m-%dT%H:%M:%S'
-    return datetime \
+    formatted = datetime \
         .strptime(time.partition('+')[0], format) \
         .strftime('%y-%m-%d  %H:%M')
+
+    return formatted
 
 
 def parse_xml(data):
@@ -114,12 +114,12 @@ def parse_xml(data):
 
 def get_namespace(element):
     match = re.search(r'\{(.*?)\}', element.tag).group(1)
+
     return {'ns': match} if match else ''
 
 
 def print_data(mapped):
     print()
-
     for data in sorted(mapped, key=lambda tup: tup[0]):
         print_date(data[0])
         print_title(data[1])
