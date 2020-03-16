@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+install() {
+	export FILE="krisinfo"
+	curl "https://raw.githubusercontent.com/lasanjin/krisinfo/master/krisinfo.py" >~/$FILE
+	chmod +x ~/$FILE
+	sudo mv ~/$FILE /usr/local/bin
+}
+
+install
