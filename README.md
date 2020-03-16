@@ -10,3 +10,6 @@ $ curl "https://raw.githubusercontent.com/lasanjin/krisinfo/master/install" | ba
 ```
 $ krisinfo
 ```
+
+## Demo
+<img src="krisinfo.gif" width="640">
