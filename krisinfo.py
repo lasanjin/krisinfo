@@ -27,31 +27,11 @@ def main():
 
 
 def get_data():
-    url = api.API
+    url = api.URL
     res = request(url)
     json_data = json.loads(res)
 
     return json_data
-
-
-def request(url):
-    try:
-        if six.PY2:
-            return urllib2.urlopen(url).read()
-        elif six.PY3:
-            return urllib.request.urlopen(url).read().decode('utf-8')
-
-    except urllib2.HTTPError as e:
-        print("HTTPError: {}".format(e.code))
-
-    except urllib2.URLError as e:
-        print("URLError: {}".format(e.reason))
-
-    except httplib.HTTPException as e:
-        print("HTTPException: {}".format(e))
-
-    except Exception as e:
-        print("Exception: {}".format(e))
 
 
 def map_data(data):
@@ -89,19 +69,9 @@ def map_data_thread(queue, mapped):
 
         data = request(q[3])
         link = parse_xml(data)
-
         mapped.append((q[0], q[1], q[2], link))
 
         queue.task_done()
-
-
-def format_time(time):
-    format = '%Y-%m-%dT%H:%M:%S'
-    formatted = datetime \
-        .strptime(time.partition('+')[0], format) \
-        .strftime('%y-%m-%d  %H:%M')
-
-    return formatted
 
 
 def parse_xml(data):
@@ -118,7 +88,46 @@ def get_namespace(element):
     return {'ns': match} if match else ''
 
 
+# -----------------------------------------------------------------
+# HELPER FUNCTIONS
+# -----------------------------------------------------------------
+def request(url):
+    try:
+        if six.PY2:
+            return urllib2.urlopen(url).read()
+        elif six.PY3:
+            return urllib.request.urlopen(url).read().decode('utf-8')
+
+    except urllib2.HTTPError as e:
+        print("HTTPError: {}".format(e.code))
+
+    except urllib2.URLError as e:
+        print("URLError: {}".format(e.reason))
+
+    except httplib.HTTPException as e:
+        print("HTTPException: {}".format(e))
+
+    except Exception as e:
+        print("Exception: {}".format(e))
+
+
+def format_time(time):
+    format = '%Y-%m-%dT%H:%M:%S'
+    formatted = datetime \
+        .strptime(time.partition('+')[0], format) \
+        .strftime('%y-%m-%d  %H:%M')
+
+    return formatted
+
+
+# -----------------------------------------------------------------
+# PRINT
+# -----------------------------------------------------------------
 def print_data(mapped):
+    if not mapped:
+        print('NO DATA')
+        quit()
+
     print()
     for data in sorted(mapped, key=lambda tup: tup[0]):
         print_date(data[0])
@@ -143,15 +152,17 @@ def print_summary(summary):
 
 def print_link(link):
     for url in link:
-        print(const.PREFIX + url.text + const.TEXT(const.SHOW))
+        print(const.PREFIX + url.text + const.TEXT('Läs mer'))
 
 
+# -----------------------------------------------------------------
+# CONSTANTS
+# -----------------------------------------------------------------
 class api:
-    API = 'http://api.krisinformation.se/v1/feed?format=json'
+    URL = 'http://api.krisinformation.se/v1/feed?format=json'
 
 
 class const:
-    SHOW = 'Läs mer'
     PREFIX = '\x1b]8;;'
 
     @staticmethod
