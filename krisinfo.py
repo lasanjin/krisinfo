@@ -1,52 +1,39 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function  # print python2
-import xml.etree.ElementTree as ET
 from datetime import datetime
 from threading import Thread
+from queue import Queue
+import xml.etree.ElementTree as ET
+import urllib.request
+import urllib.error
+import http.client
 import json
 import re
-import six
-
-if six.PY2:  # python2
-    from Queue import Queue
-    import urllib2
-    import httplib
-elif six.PY3:  # python3
-    from queue import Queue
-    import http.client as httplib  # httplib.HTTPException
-    import urllib.error as urllib2  # urllib2.HTTPError
-    import urllib.request
 
 
 def main():
-    data = get_data()
-    mapped = map_data(data)
-    print_data(mapped)
-
-
-def get_data():
-    url = api.URL
-    res = request(url)
+    res = request(Api.URL)
+    if res is None:
+        print('NO DATA')
     json_data = json.loads(res)
+    # print(json.dumps(json_data, indent=2, ensure_ascii=False))  # debug
+    parsed = parse_data(json_data)
+    print_data(parsed)
 
-    return json_data
 
-
-def map_data(data):
-    mapped = []
+def parse_data(data):
+    parsed = []
     queue = build_queue(data)
 
     for i in range(queue.qsize()):
-        thread = Thread(target=map_data_thread,
-                        args=(queue, mapped))
+        thread = Thread(target=parse_data_thread, args=(queue, parsed))
         thread.daemon = True
         thread.start()
 
     queue.join()
 
-    return mapped
+    return parsed
 
 
 def build_queue(data):
@@ -63,13 +50,13 @@ def build_queue(data):
     return queue
 
 
-def map_data_thread(queue, mapped):
+def parse_data_thread(queue, parsed):
     while not queue.empty():
         q = queue.get()
 
         data = request(q[3])
-        link = parse_xml(data)
-        mapped.append((q[0], q[1], q[2], link))
+        link = parse_xml(data) if data is not None else None
+        parsed.append((q[0], q[1], q[2], link))
 
         queue.task_done()
 
@@ -88,27 +75,25 @@ def get_namespace(element):
     return {'ns': match} if match else ''
 
 
-# -----------------------------------------------------------------
-# HELPER FUNCTIONS
-# -----------------------------------------------------------------
 def request(url):
     try:
-        if six.PY2:
-            return urllib2.urlopen(url).read()
-        elif six.PY3:
-            return urllib.request.urlopen(url).read().decode('utf-8')
+        return urllib.request.urlopen(url).read().decode('utf-8')
 
-    except urllib2.HTTPError as e:
-        print("HTTPError: {}".format(e.code))
+    except urllib.error.HTTPError as e:
+        print("HTTPError: {}\n{}".format(e.code, url))
+        return None
 
-    except urllib2.URLError as e:
-        print("URLError: {}".format(e.reason))
+    except urllib.error.URLError as e:
+        print("URLError: {}\n{}".format(e.reason, url))
+        return None
 
-    except httplib.HTTPException as e:
-        print("HTTPException: {}".format(e))
+    except http.client.HTTPException as e:
+        print("HTTPException: {}\n{}".format(e, url))
+        return None
 
     except Exception as e:
-        print("Exception: {}".format(e))
+        print("Exception: {}\n{}".format(e, url))
+        return None
 
 
 def format_time(time):
@@ -120,16 +105,13 @@ def format_time(time):
     return formatted
 
 
-# -----------------------------------------------------------------
-# PRINT
-# -----------------------------------------------------------------
-def print_data(mapped):
-    if not mapped:
+def print_data(parsed):
+    if not parsed:
         print('NO DATA')
         quit()
 
     print()
-    for data in sorted(mapped, key=lambda tup: tup[0]):
+    for data in sorted(parsed, key=lambda tup: tup[0]):
         print_date(data[0])
         print_title(data[1])
         print_summary(data[2])
@@ -138,11 +120,11 @@ def print_data(mapped):
 
 
 def print_date(date):
-    print(color.BOLD + color.green(date[0]) + color.dim(date[2]))
+    print(Style.BOLD + Style.green(date[0]) + Style.dim(date[2]))
 
 
 def print_title(title):
-    print(color.blue(title))
+    print(Style.blue(title))
 
 
 def print_summary(summary):
@@ -151,26 +133,20 @@ def print_summary(summary):
 
 
 def print_link(link):
-    for url in link:
-        print(const.PREFIX + url.text + const.TEXT('Läs mer'))
+    if link is not None:
+        prefix = '\x1b]8;;'
+        link = '\a' + 'Läs mer' + prefix + '\a'
+        for url in link:
+            print(prefix + url.text + link)
+    else:
+        print(Style.dim('[No link]'))
 
 
-# -----------------------------------------------------------------
-# CONSTANTS
-# -----------------------------------------------------------------
-class api:
+class Api:
     URL = 'http://api.krisinformation.se/v1/feed?format=json'
 
 
-class const:
-    PREFIX = '\x1b]8;;'
-
-    @staticmethod
-    def TEXT(text):
-        return '\a' + text + const.PREFIX + '\a'
-
-
-class color:
+class Style:
     DEFAULT = '\033[0m'
     GREEN = '\033[92m'
     BLUE = '\033[94m'
@@ -179,15 +155,15 @@ class color:
 
     @staticmethod
     def dim(output):
-        return color.DIM + output + color.DEFAULT
+        return Style.DIM + output + Style.DEFAULT
 
     @staticmethod
     def green(output):
-        return color.GREEN + output + color.DEFAULT
+        return Style.GREEN + output + Style.DEFAULT
 
     @staticmethod
     def blue(output):
-        return color.BLUE + output + color.DEFAULT
+        return Style.BLUE + output + Style.DEFAULT
 
 
 if __name__ == "__main__":
