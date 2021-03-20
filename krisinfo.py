@@ -16,6 +16,7 @@ def main():
     res = request(Api.URL)
     if res is None:
         print('NO DATA')
+        quit()
     json_data = json.loads(res)
     # print(json.dumps(json_data, indent=2, ensure_ascii=False))  # debug
     parsed = parse_data(json_data)
