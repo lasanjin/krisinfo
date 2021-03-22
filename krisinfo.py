@@ -56,8 +56,9 @@ def parse_data_thread(queue, parsed):
         q = queue.get()
 
         data = request(q[3])
-        link = parse_xml(data) if data is not None else None
-        parsed.append((q[0], q[1], q[2], link))
+        if data is not None:
+            link = parse_xml(data) if data is not None else None
+            parsed.append((q[0], q[1], q[2], link))
 
         queue.task_done()
 
@@ -79,21 +80,8 @@ def get_namespace(element):
 def request(url):
     try:
         return urllib.request.urlopen(url).read().decode('utf-8')
-
-    except urllib.error.HTTPError as e:
-        print("HTTPError: {}\n{}".format(e.code, url))
-        return None
-
-    except urllib.error.URLError as e:
-        print("URLError: {}\n{}".format(e.reason, url))
-        return None
-
-    except http.client.HTTPException as e:
-        print("HTTPException: {}\n{}".format(e, url))
-        return None
-
     except Exception as e:
-        print("Exception: {}\n{}".format(e, url))
+        print("Exception: %s" % e)
         return None
 
 
@@ -104,43 +92,6 @@ def format_time(time):
         .strftime('%y-%m-%d  %H:%M')
 
     return formatted
-
-
-def print_data(parsed):
-    if not parsed:
-        print('NO DATA')
-        quit()
-
-    print()
-    for data in sorted(parsed, key=lambda tup: tup[0]):
-        print_date(data[0])
-        print_title(data[1])
-        print_summary(data[2])
-        print_link(data[3])
-        print()
-
-
-def print_date(date):
-    print(Style.BOLD + Style.green(date[0]) + Style.dim(date[2]))
-
-
-def print_title(title):
-    print(Style.blue(title))
-
-
-def print_summary(summary):
-    print(('\n'.join(line for line in re.findall(
-        r'.{1,' + re.escape("80") + '}(?:\s+|$)', summary))))
-
-
-def print_link(link):
-    if link is not None:
-        prefix = '\x1b]8;;'
-        link = '\a' + 'Läs mer' + prefix + '\a'
-        for url in link:
-            print(prefix + url.text + link)
-    else:
-        print(Style.dim('[No link]'))
 
 
 class Api:
@@ -155,16 +106,49 @@ class Style:
     DIM = '\033[2m'
 
     @staticmethod
-    def dim(output):
-        return Style.DIM + output + Style.DEFAULT
+    def style(output, color, styles=[]):
+        if color is not None:
+            output = {
+                'green': Style.GREEN + '%s',
+                'blue': Style.BLUE + '%s',
+            }[color] % output
 
-    @staticmethod
-    def green(output):
-        return Style.GREEN + output + Style.DEFAULT
+        for style in styles:
+            output = {
+                'bold': Style.BOLD + '%s',
+                'dim': Style.DIM + '%s'
+            }[style] % output
 
-    @staticmethod
-    def blue(output):
-        return Style.BLUE + output + Style.DEFAULT
+        return output + Style.DEFAULT
+
+
+# -----------------------------------------------------------------
+# PRINT
+# -----------------------------------------------------------------
+def print_data(parsed):
+    if not parsed:
+        print('NO DATA')
+        quit()
+
+    print()
+    for data in sorted(parsed, key=lambda tup: tup[0]):
+        # print date
+        print(Style.style(data[0][0], 'green', ['bold']) +
+              Style.style(data[0][2], None, ['dim']))
+        # print title
+        print(Style.style(data[1], 'blue'))
+        # print summary
+        print(('\n'.join(line for line in re.findall(
+            r'.{1,' + re.escape("80") + '}(?:\s+|$)', data[2]))))
+        # print link
+        if data[3] is not None:
+            prefix = '\x1b]8;;'
+            hlink = '\a' + 'Läs mer' + prefix + '\a'
+            for url in data[3]:
+                print(prefix + url.text + hlink)
+        else:
+            print(Style.style('[NO LINK]', None, ['dim']))
+        print()
 
 
 if __name__ == "__main__":
