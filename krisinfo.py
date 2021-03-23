@@ -1,15 +1,22 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function  # python2 print
 from datetime import datetime
 from threading import Thread
-from queue import Queue
 import xml.etree.ElementTree as ET
-import urllib.request
-import urllib.error
-import http.client
 import json
+import sys
 import re
+
+PY_VERSION = sys.version_info[0]
+
+if PY_VERSION < 3:
+    from Queue import Queue
+    import urllib2
+elif PY_VERSION >= 3:
+    from queue import Queue
+    import urllib.request as urllib2
 
 
 def main():
@@ -79,7 +86,7 @@ def get_namespace(element):
 
 def request(url):
     try:
-        return urllib.request.urlopen(url).read().decode('utf-8')
+        return urllib2.urlopen(url).read()  # .decode('utf-8')
     except Exception as e:
         print("Exception: %s" % e)
         return None
