@@ -105,28 +105,22 @@ class Api:
     URL = 'http://api.krisinformation.se/v1/feed?format=json'
 
 
-class Style:
-    DEFAULT = '\033[0m'
-    GREEN = '\033[92m'
-    BLUE = '\033[94m'
-    BOLD = "\033[1m"
-    DIM = '\033[2m'
-
+class Utils:
     @staticmethod
     def style(output, color, styles=[]):
         if color is not None:
             output = {
-                'green': Style.GREEN + '%s',
-                'blue': Style.BLUE + '%s',
+                'green': '\033[92m%s',
+                'blue': '\033[94m%s',
             }[color] % output
 
         for style in styles:
             output = {
-                'bold': Style.BOLD + '%s',
-                'dim': Style.DIM + '%s'
+                'bold': '\033[1m%s',
+                'dim': '\033[2m%s'
             }[style] % output
 
-        return output + Style.DEFAULT
+        return output + '\033[0m'  # default
 
 
 # -----------------------------------------------------------------
@@ -140,10 +134,10 @@ def print_data(parsed):
     print()
     for data in sorted(parsed, key=lambda tup: tup[0]):
         # print date
-        print(Style.style(data[0][0], 'green', ['bold']) +
-              Style.style(data[0][2], None, ['dim']))
+        print(Utils.style(data[0][0], 'green', ['bold']) +
+              Utils.style(data[0][2], None, ['dim']))
         # print title
-        print(Style.style(data[1], 'blue'))
+        print(Utils.style(data[1], 'blue'))
         # print summary
         print(('\n'.join(line for line in re.findall(
             r'.{1,' + re.escape("80") + '}(?:\s+|$)', data[2]))))
@@ -154,7 +148,7 @@ def print_data(parsed):
             for url in data[3]:
                 print(prefix + url.text + hlink)
         else:
-            print(Style.style('[NO LINK]', None, ['dim']))
+            print(Utils.style('[NO LINK]', None, ['dim']))
         print()
 
 
